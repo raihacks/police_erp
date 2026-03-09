@@ -349,6 +349,36 @@ def citizen_dashboard():
         total_citizens=total_citizens
     )
 
+
+@app.route('/officer_profile', methods=['GET', 'POST'])
+def officer_profile():
+
+    if 'username' not in session:
+        return redirect('/')
+
+    username = session['username']
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    if request.method == 'POST':
+
+        phone = request.form['phone']
+        email = request.form['email']
+
+        cur.execute("""
+            UPDATE officer
+            SET phone=%s, email=%s
+            WHERE username=%s
+        """, (phone, email, username))
+
+        mysql.connection.commit()
+
+    # Get officer info
+    cur.execute("SELECT * FROM officer WHERE username=%s", (username,))
+    officer = cur.fetchone()
+
+    cur.close()
+
+    return render_template("officer_profile.html", officer=officer)
 @app.route('/citizen_logout')
 def citizen_logout():
     session.clear()
