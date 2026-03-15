@@ -29,16 +29,22 @@ def login():
             (username, password)
         )
         user = cur.fetchone()
-        cur.close()
+       
 
         if user:
             session['role'] = user[0]
             session['username'] = username
+            cur.execute("INSERT INTO login_logs(username) VALUES (%s)",(username,))
+            mysql.connection.commit()
+            cur.close()
             return redirect('/police_dashboard')
 
     return render_template('login.html')
 
 # ---------- LOGOUT ----------
+@app.route('/home')
+def home():
+    return render_template("home.html")
 @app.route('/logout')
 def logout():
     session.clear()
@@ -246,7 +252,9 @@ from flask import flash
 
 @app.route('/citizen_register', methods=['GET', 'POST'])
 def citizen_register():
+
     if request.method == 'POST':
+
         name = request.form['name']
         aadhar = request.form['aadhar_no']
         phone = request.form['phone']
@@ -256,25 +264,17 @@ def citizen_register():
         cursor = mysql.connection.cursor()
 
         try:
-            # Insert into citizen table
             cursor.execute("""
-                INSERT INTO citizen (name, aadhar_no, phone, address)
-                VALUES (%s, %s, %s, %s)
-            """, (name, aadhar, phone, address))
-
-            citizen_id = cursor.lastrowid
-
-            # Insert into login table
-            cursor.execute("""
-                INSERT INTO citizen_users (citizen_id, username, password_hash)
-                VALUES (%s, %s, %s)
-            """, (citizen_id, aadhar, password))
+                INSERT INTO citizen (name, aadhar_no, phone, address, password)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (name, aadhar, phone, address, password))
 
             mysql.connection.commit()
+
             flash("Registration successful. Please login.", "success")
             return redirect('/citizen_login')
 
-        except Exception:
+        except IntegrityError:
             mysql.connection.rollback()
             flash("Citizen already exists.", "danger")
 
@@ -284,25 +284,34 @@ def citizen_register():
     return render_template('citizen_register.html')
 
 
-
 from werkzeug.security import check_password_hash
 
 @app.route('/citizen_login', methods=['GET', 'POST'])
 def citizen_login():
+
     if request.method == 'POST':
-        username = request.form['username']
+
+        name = request.form['username']
         password = request.form['password']
 
         cursor = mysql.connection.cursor()
+
         cursor.execute("""
-            SELECT password_hash FROM citizen_users WHERE username = %s
-        """, (username,))
+            SELECT citizen_id, password 
+            FROM citizen 
+            WHERE name=%s
+        """, (name,))
 
         user = cursor.fetchone()
+
         cursor.close()
 
-        if user and check_password_hash(user[0], password):
+        if user and check_password_hash(user[1], password):
+
+            session['citizen_id'] = user[0]
+
             return redirect('/citizen_dashboard')
+
         else:
             flash("Invalid login credentials", "danger")
 
@@ -334,7 +343,7 @@ def citizen_dashboard():
     total_officers = cur.fetchone()['total']
 
     # Citizens
-    cur.execute("SELECT COUNT(*) AS total FROM citizen_users")
+    cur.execute("SELECT COUNT(*) AS total FROM citizen")
     total_citizens = cur.fetchone()['total']
 
     cur.close()
@@ -349,14 +358,14 @@ def citizen_dashboard():
         total_citizens=total_citizens
     )
 
-
-@app.route('/officer_profile', methods=['GET', 'POST'])
+@app.route('/officer_profile', methods=['GET','POST'])
 def officer_profile():
 
-    if 'username' not in session:
+    if 'officer_id' not in session:
         return redirect('/')
 
-    username = session['username']
+    officer_id = session['officer_id']
+
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     if request.method == 'POST':
@@ -365,20 +374,105 @@ def officer_profile():
         email = request.form['email']
 
         cur.execute("""
-            UPDATE officer
-            SET phone=%s, email=%s
-            WHERE username=%s
-        """, (phone, email, username))
+        UPDATE officer
+        SET phone=%s, email=%s
+        WHERE officer_id=%s
+        """,(phone,email,officer_id))
 
         mysql.connection.commit()
 
-    # Get officer info
-    cur.execute("SELECT * FROM officer WHERE username=%s", (username,))
+    cur.execute("SELECT * FROM officer WHERE officer_id=%s",(officer_id,))
     officer = cur.fetchone()
 
     cur.close()
 
     return render_template("officer_profile.html", officer=officer)
+@app.route('/add_emergency_call', methods=['GET','POST'])
+def add_emergency_call():
+
+    if 'username' not in session:
+        return redirect('/')
+
+    if request.method == 'POST':
+
+        citizen_id = request.form['citizen_id']
+        location = request.form['location']
+        description = request.form['description']
+
+        cur = mysql.connection.cursor()
+
+        cur.execute("""
+        INSERT INTO emergency_calls (citizen_id, location, description)
+        VALUES (%s,%s,%s)
+        """,(citizen_id, location, description))
+
+        mysql.connection.commit()
+        cur.close()
+
+        return redirect('/view_emergency_calls')
+
+    return render_template("add_emergency_call.html")
+@app.route('/view_emergency_calls')
+def view_emergency_calls():
+
+    if 'username' not in session:
+        return redirect('/')
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    cur.execute("""
+    SELECT ec.call_id, ec.citizen_id, ec.location, ec.description, ec.call_time
+    FROM emergency_calls ec
+    ORDER BY ec.call_time DESC
+    """)
+
+    calls = cur.fetchall()
+
+    cur.close()
+
+    return render_template("view_emergency_calls.html", calls=calls)
+@app.route('/emergency_logs')
+def emergency_logs():
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    cur.execute("""
+    SELECT el.log_id, el.call_id, el.log_time
+    FROM emergency_log el
+    ORDER BY el.log_time DESC
+    """)
+
+    logs = cur.fetchall()
+
+    cur.close()
+
+    return render_template("emergency_logs.html", logs=logs)
+
+@app.route('/report_emergency', methods=['GET','POST'])
+def report_emergency():
+
+    if request.method == 'POST':
+
+        citizen_id = request.form['citizen_id']
+        location = request.form['location']
+        description = request.form['description']
+
+        cur = mysql.connection.cursor()
+
+        cur.execute("""
+        INSERT INTO emergency_calls (citizen_id, location, description)
+        VALUES (%s,%s,%s)
+        """,(citizen_id, location, description))
+
+        mysql.connection.commit()
+        cur.close()
+
+        flash("Emergency reported successfully!", "success")
+
+        return redirect('/citizen_dashboard')
+
+    return render_template("report_emergency.html")
+
 @app.route('/citizen_logout')
 def citizen_logout():
     session.clear()

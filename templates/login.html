@@ -3,12 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <title>Police ERP Login</title>
-
+<style>
+        body {
+            margin: 0;
+            height: 100vh;
+            background: url("{{ url_for('static', filename='images/image.jpg') }}") no-repeat center center/cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+        }
+    </style>
     <!-- Bootstrap CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body class="bg-light">
+     
 
 <div class="container d-flex justify-content-center align-items-center vh-100">
     <div class="card p-4 shadow" style="width: 360px;">
