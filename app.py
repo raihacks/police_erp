@@ -27,7 +27,7 @@ def get_db():
     )
 
 # ---------- LOGIN ----------
-@app.route('/police_login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         conn = get_db()
