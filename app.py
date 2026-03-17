@@ -27,7 +27,7 @@ def get_db():
     )
 
 # ---------- LOGIN ----------
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/police_login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         conn = get_db()
@@ -57,7 +57,7 @@ def login():
     return render_template('login.html')
 
 # ---------- HOME ----------
-@app.route('/home')
+@app.route('/')
 def home():
     return render_template("home.html")
 
