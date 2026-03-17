@@ -115,11 +115,11 @@ def add_fir():
     if 'username' not in session:
         return redirect('/')
 
-    try:
-        conn = get_db()
-        cur = conn.cursor()
+    conn = get_db()
+    cur = conn.cursor()
 
-        # Fetch dropdown options
+    try:
+        # Fetch dropdowns
         cur.execute("SELECT crime_id, crime_type FROM crime")
         crimes = cur.fetchall()
 
@@ -127,7 +127,6 @@ def add_fir():
         stations = cur.fetchall()
 
         if request.method == 'POST':
-            # Get form data
             citizen_name = request.form.get('citizen_name')
             citizen_phone = request.form.get('citizen_phone')
             citizen_address = request.form.get('citizen_address')
@@ -136,22 +135,30 @@ def add_fir():
             station_id = request.form.get('station_id')
             status = request.form.get('status')
 
-            # Check mandatory fields
+            # Validate all fields
             if not all([citizen_name, citizen_phone, citizen_address, city, crime_id, station_id, status]):
-                flash("Please fill all fields!", "danger")
+                flash("All fields are required!", "danger")
                 return render_template('add_fir.html', crimes=crimes, stations=stations)
+
+            # Convert IDs to integer
+            crime_id = int(crime_id)
+            station_id = int(station_id)
 
             # Insert citizen
             cur.execute(
-                "INSERT INTO citizen (name, phone, address) VALUES (%s, %s, %s)",
+                "INSERT INTO citizen (name, phone, address) VALUES (%s,%s,%s)",
                 (citizen_name, citizen_phone, citizen_address)
             )
             citizen_id = cur.lastrowid
 
+            if not citizen_id:
+                flash("Failed to insert citizen. Check database.", "danger")
+                return render_template('add_fir.html', crimes=crimes, stations=stations)
+
             # Insert FIR
             cur.execute(
                 "INSERT INTO fir (citizen_id, crime_id, station_id, fir_date, status, city) "
-                "VALUES (%s, %s, %s, CURDATE(), %s, %s)",
+                "VALUES (%s,%s,%s,CURDATE(),%s,%s)",
                 (citizen_id, crime_id, station_id, status, city)
             )
 
@@ -161,7 +168,7 @@ def add_fir():
 
     except Exception as e:
         conn.rollback()
-        flash(f"Error submitting FIR: {str(e)}", "danger")
+        flash(f"Error: {str(e)}", "danger")
 
     finally:
         cur.close()
