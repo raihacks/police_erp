@@ -115,35 +115,59 @@ def add_fir():
     if 'username' not in session:
         return redirect('/')
 
-    conn = get_db()
-    cur = conn.cursor()
+    try:
+        conn = get_db()
+        cur = conn.cursor()
 
-    cur.execute("SELECT crime_id, crime_type FROM crime")
-    crimes = cur.fetchall()
+        # Fetch dropdown options
+        cur.execute("SELECT crime_id, crime_type FROM crime")
+        crimes = cur.fetchall()
 
-    cur.execute("SELECT station_id, station_name FROM police_station")
-    stations = cur.fetchall()
+        cur.execute("SELECT station_id, station_name FROM police_station")
+        stations = cur.fetchall()
 
-    if request.method == 'POST':
-        cur.execute(
-            "INSERT INTO citizen (name, phone, address) VALUES (%s,%s,%s)",
-            (request.form['citizen_name'], request.form['citizen_phone'], request.form['citizen_address'])
-        )
-        citizen_id = cur.lastrowid
+        if request.method == 'POST':
+            # Get form data
+            citizen_name = request.form.get('citizen_name')
+            citizen_phone = request.form.get('citizen_phone')
+            citizen_address = request.form.get('citizen_address')
+            city = request.form.get('city')
+            crime_id = request.form.get('crime_id')
+            station_id = request.form.get('station_id')
+            status = request.form.get('status')
 
-        cur.execute("""
-            INSERT INTO fir (citizen_id, crime_id, station_id, fir_date, status, city)
-            VALUES (%s,%s,%s,CURDATE(),%s,%s)
-        """, (citizen_id, request.form['crime_id'], request.form['station_id'],
-              request.form['status'], request.form['city']))
+            # Check mandatory fields
+            if not all([citizen_name, citizen_phone, citizen_address, city, crime_id, station_id, status]):
+                flash("Please fill all fields!", "danger")
+                return render_template('add_fir.html', crimes=crimes, stations=stations)
 
-        conn.commit()
-        cur.close(); conn.close()
-        return redirect('/view_fir')
+            # Insert citizen
+            cur.execute(
+                "INSERT INTO citizen (name, phone, address) VALUES (%s, %s, %s)",
+                (citizen_name, citizen_phone, citizen_address)
+            )
+            citizen_id = cur.lastrowid
 
-    cur.close(); conn.close()
+            # Insert FIR
+            cur.execute(
+                "INSERT INTO fir (citizen_id, crime_id, station_id, fir_date, status, city) "
+                "VALUES (%s, %s, %s, CURDATE(), %s, %s)",
+                (citizen_id, crime_id, station_id, status, city)
+            )
+
+            conn.commit()
+            flash("FIR submitted successfully!", "success")
+            return redirect('/view_fir')
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error submitting FIR: {str(e)}", "danger")
+
+    finally:
+        cur.close()
+        conn.close()
+
     return render_template('add_fir.html', crimes=crimes, stations=stations)
-
 # ---------- VIEW FIR ----------
 @app.route('/view_fir')
 def view_fir():
