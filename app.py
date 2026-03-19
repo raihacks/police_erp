@@ -508,23 +508,43 @@ def neighbourhood_complaints():
 @app.route('/request_fir', methods=['GET', 'POST'])
 def request_fir():
     if 'username' not in session or session.get('role') != 'citizen':
-        return redirect('/login')
+        return redirect('/citizen_login')  # make sure it points to citizen login
 
-    if request.method == 'POST':
-        name = request.form['citizen_name']
-        phone = request.form['citizen_phone']
-        address = request.form['citizen_address']
-        crime = request.form['crime_type']
-        city = request.form['city']
+    conn = get_db()
+    cur = conn.cursor()
 
-        # Insert request
-        cur.execute("""
-            INSERT INTO fir_requests
-            (citizen_name, phone, address, crime_type, city)
-            VALUES (%s,%s,%s,%s,%s)
-        """, (name, phone, address, crime, city))
-        conn.commit()
-        flash("FIR request submitted. Police will review it.", "success")
+    try:
+        if request.method == 'POST':
+            # safely get form values
+            name = request.form.get('citizen_name')
+            phone = request.form.get('citizen_phone')
+            address = request.form.get('citizen_address')
+            crime = request.form.get('crime_type')
+            city = request.form.get('city')
+
+            # Validate required fields
+            if not all([name, city, crime]):
+                flash("Please fill in all required fields!", "danger")
+                return render_template('request_fir.html')
+
+            # Insert request
+            cur.execute("""
+                INSERT INTO fir_requests
+                (citizen_name, phone, address, crime_type, city)
+                VALUES (%s,%s,%s,%s,%s)
+            """, (name, phone, address, crime, city))
+            conn.commit()
+            flash("FIR request submitted. Police will review it.", "success")
+            return redirect('/my_firs')  # redirect to track submitted FIRs
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error submitting FIR: {str(e)}", "danger")
+        return render_template('request_fir.html')
+
+    finally:
+        cur.close()
+        conn.close()
 
     return render_template('request_fir.html')
 
