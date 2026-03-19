@@ -294,20 +294,20 @@ def citizen_login():
         conn = get_db()
         cur = conn.cursor()
 
-        cur.execute("SELECT citizen_id, password FROM citizen WHERE name=%s",
+        cur.execute("SELECT citizen_id, name, password FROM citizen WHERE name=%s",
                     (request.form['username'],))
         user = cur.fetchone()
-
         cur.close(); conn.close()
 
         if user and check_password_hash(user['password'], request.form['password']):
             session['citizen_id'] = user['citizen_id']
+            session['username'] = user['name']      # <-- add this
+            session['role'] = 'citizen'             # <-- add this
             return redirect('/citizen_dashboard')
 
         flash("Invalid login credentials", "danger")
 
     return render_template('citizen_login.html')
-
 # ---------- CITIZEN DASHBOARD ----------
 @app.route('/citizen_dashboard')
 def citizen_dashboard():
@@ -426,7 +426,9 @@ def report_emergency():
 # ---------- LOGOUT ----------
 @app.route('/citizen_logout')
 def citizen_logout():
-    session.clear()
+    session.pop('citizen_id', None)
+    session.pop('username', None)
+    session.pop('role', None)
     return redirect('/citizen_login')
 
 @app.route('/test_ui')
