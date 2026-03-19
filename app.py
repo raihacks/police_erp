@@ -311,36 +311,59 @@ def citizen_login():
 # ---------- CITIZEN DASHBOARD ----------
 @app.route('/citizen_dashboard')
 def citizen_dashboard():
+    if 'username' not in session or session.get('role') != 'citizen':
+        return redirect('/citizen_login')
+
     conn = get_db()
     cur = conn.cursor()
 
-    cur.execute("SELECT COUNT(*) AS total FROM fir")
-    total_firs = cur.fetchone()['total']
+    try:
+        # Total stats
+        cur.execute("SELECT COUNT(*) AS total FROM fir_requests WHERE citizen_name=%s", (session['username'],))
+        total_firs = cur.fetchone()['total']
 
-    cur.execute("SELECT COUNT(*) AS total FROM fir WHERE status='Open'")
-    open_cases = cur.fetchone()['total']
+        cur.execute("SELECT COUNT(*) AS total FROM fir_requests WHERE citizen_name=%s AND status='Pending'", (session['username'],))
+        pending_requests = cur.fetchone()['total']
 
-    cur.execute("SELECT COUNT(*) AS total FROM fir WHERE status='Closed'")
-    closed_cases = cur.fetchone()['total']
+        cur.execute("SELECT COUNT(*) AS total FROM fir_requests WHERE citizen_name=%s AND status='Approved'", (session['username'],))
+        approved_requests = cur.fetchone()['total']
 
-    cur.execute("SELECT COUNT(*) AS total FROM fir WHERE status='Under Investigation'")
-    investigation_cases = cur.fetchone()['total']
+        cur.execute("SELECT COUNT(*) AS total FROM fir_requests WHERE citizen_name=%s AND status='Rejected'", (session['username'],))
+        rejected_requests = cur.fetchone()['total']
 
-    cur.execute("SELECT COUNT(*) AS total FROM officer")
-    total_officers = cur.fetchone()['total']
+        cur.execute("SELECT COUNT(*) AS total FROM citizen")
+        total_citizens = cur.fetchone()['total']
 
-    cur.execute("SELECT COUNT(*) AS total FROM citizen")
-    total_citizens = cur.fetchone()['total']
+        # Fetch FIR requests table
+        cur.execute("SELECT * FROM fir_requests WHERE citizen_name=%s ORDER BY created_at DESC", (session['username'],))
+        requests = cur.fetchall()
 
-    cur.close(); conn.close()
+        # Fetch recent neighborhood complaints
+        cur.execute("SELECT * FROM neighbourhood_complaints ORDER BY created_at DESC LIMIT 5")
+        recent_complaints = cur.fetchall()
 
-    return render_template('citizen_dashboard.html',
+        # Fetch recent missing persons
+        cur.execute("SELECT * FROM missing_persons ORDER BY created_at DESC LIMIT 5")
+        recent_missing = cur.fetchall()
+
+    except Exception as e:
+        flash(f"Error loading dashboard: {str(e)}", "danger")
+        total_firs = pending_requests = approved_requests = rejected_requests = total_citizens = 0
+        requests = recent_complaints = recent_missing = []
+    finally:
+        cur.close()
+        conn.close()
+
+    return render_template(
+        'citizen_dashboard.html',
         total_firs=total_firs,
-        open_cases=open_cases,
-        closed_cases=closed_cases,
-        investigation_cases=investigation_cases,
-        total_officers=total_officers,
-        total_citizens=total_citizens
+        pending_requests=pending_requests,
+        approved_requests=approved_requests,
+        rejected_requests=rejected_requests,
+        total_citizens=total_citizens,
+        requests=requests,
+        recent_complaints=recent_complaints,
+        recent_missing=recent_missing
     )
 
 # ---------- OFFICER PROFILE ----------
