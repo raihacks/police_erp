@@ -111,11 +111,12 @@
                         <div class="mb-3">
                             <label class="form-label">Crime Type</label>
                             <select name="crime_id" class="form-select" required>
-                                <option value="">Select Crime</option>
-                                {% for cr in crimes %}
-                                    <option value="{{ cr[0] }}">{{ cr[1] }}</option>
-                                {% endfor %}
-                            </select>
+                                <select name="crime_id" class="form-select" required>
+    <option value="" disabled selected>Select Crime</option>
+    {% for cr in crimes %}
+        <option value="{{ cr[0] }}">{{ cr[1] }}</option>
+    {% endfor %}
+</select>
                         </div>
 <div class="mb-3">
     <label class="form-label">City</label>
@@ -125,11 +126,11 @@
                         <div class="mb-3">
                             <label class="form-label">Police Station</label>
                             <select name="station_id" class="form-select" required>
-                                <option value="">Select Station</option>
-                                {% for s in stations %}
-                                    <option value="{{ s[0] }}">{{ s[1] }}</option>
-                                {% endfor %}
-                            </select>
+    <option value="" disabled selected>Select Station</option>
+    {% for s in stations %}
+        <option value="{{ s[0] }}">{{ s[1] }}</option>
+    {% endfor %}
+</select>
                         </div>
 
                         <!-- Status -->
