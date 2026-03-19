@@ -128,7 +128,7 @@
                             <select name="station_id" class="form-select" required>
     <option value="" disabled selected>Select Station</option>
     {% for s in stations %}
-        <option value="{{ s[0] }}">{{ s[1] }}</option>
+        <option value="{{ s['station_id'] }}">{{ s['station_name'] }}</option>
     {% endfor %}
 </select>
                         </div>
