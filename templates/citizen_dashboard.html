@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Citizen Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -11,10 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        body {
-            background: #f4f6f9;
-        }
-
+        body { background: #f4f6f9; }
         .dashboard-header {
             background: #212529;
             color: white;
@@ -22,7 +20,6 @@
             font-size: 22px;
             text-align: center;
         }
-
         .stat-card {
             background: white;
             padding: 20px;
@@ -30,25 +27,14 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             transition: 0.3s;
             cursor: pointer;
+            margin-bottom: 15px;
         }
-
-        .stat-card:hover {
-            transform: scale(1.05);
-        }
-
-        .quick-actions a {
-            margin: 5px;
-        }
-        .chart-container {
-    position: relative;
-    width: 100%;        /* Full width of parent card */
-    max-width: 400px;   /* Limit max width */
-    height: auto;
-    margin: auto;       /* Center horizontally */
-}
+        .stat-card:hover { transform: scale(1.03); }
+        .chart-container { position: relative; width: 100%; max-width: 400px; height: auto; margin: auto; }
+        .quick-actions a { margin: 5px; }
+        .alert-custom { margin-bottom: 15px; }
     </style>
 </head>
-
 <body>
 
 <!-- HEADER -->
@@ -59,7 +45,7 @@
 <div class="container mt-4">
 
     <!-- SAFETY MESSAGE -->
-    <div class="alert alert-info">
+    <div class="alert alert-info alert-custom">
         🔒 Your data is secure and visible only to authorized police officers.
     </div>
 
@@ -67,94 +53,119 @@
     <h5 class="mb-3">Welcome, {{ session.username }}</h5>
 
     <!-- QUICK ACTIONS -->
-   <div class="stat-card mb-4 quick-actions">
-    <h5>Quick Actions</h5>
-    <a href="/request_fir" class="btn btn-primary btn-sm">Request FIR</a>
-    <a href="/my_firs" class="btn btn-secondary btn-sm">Track My Cases</a>
-    <a href="/neighbourhood_complaints" class="btn btn-dark btn-sm">Neighbourhood Complaint</a>
-    <a href="/missing_persons" class="btn btn-warning btn-sm">Search Missing Persons</a>
-    <a href="/emergency_call" class="btn btn-danger btn-sm">🚨 Emergency</a>
-</div>
+    <div class="stat-card quick-actions">
+        <h5>Quick Actions</h5>
+        <a href="/request_fir" class="btn btn-primary btn-sm">Request FIR</a>
+        <a href="/my_firs" class="btn btn-secondary btn-sm">Track My Cases</a>
+        <a href="/neighbourhood_complaints" class="btn btn-dark btn-sm">Neighbourhood Complaint</a>
+        <a href="/missing_persons" class="btn btn-warning btn-sm">Search Missing Persons</a>
+        <a href="/emergency_call" class="btn btn-danger btn-sm">🚨 Emergency</a>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    {% if notifications %}
+    <div class="alert alert-warning alert-custom">
+        {% for note in notifications %}
+            ⚠️ {{ note }}<br>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     <!-- STATS -->
-    <div class="row mb-4">
+    <div class="row">
         <div class="col-md-3">
             <div class="stat-card text-center">
                 <h2>{{ total_firs }}</h2>
-                <p>Total FIRs</p>
+                <p>Total FIR Requests</p>
             </div>
         </div>
-
         <div class="col-md-3">
             <div class="stat-card text-center">
-                <h2>{{ open_cases }}</h2>
-                <p>Open Cases</p>
+                <h2>{{ pending_requests }}</h2>
+                <p>Pending Requests</p>
             </div>
         </div>
-
         <div class="col-md-3">
             <div class="stat-card text-center">
-                <h2>{{ closed_cases }}</h2>
-                <p>Closed Cases</p>
+                <h2>{{ approved_requests }}</h2>
+                <p>Approved FIRs</p>
             </div>
         </div>
-
         <div class="col-md-3">
             <div class="stat-card text-center">
                 <h2>{{ total_citizens }}</h2>
-                <p>Citizens</p>
+                <p>Registered Citizens</p>
             </div>
         </div>
     </div>
 
-    <!-- CHART -->
-    <div class="stat-card mb-4">
+    <!-- CASE STATUS PIE CHART -->
+    <div class="stat-card">
         <h5>Case Status Overview</h5>
         <div class="chart-container">
             <canvas id="caseChart"></canvas>
         </div>
     </div>
 
-    <!-- RECENT FIR TABLE -->
+    <!-- MY FIR REQUESTS TABLE -->
     <div class="stat-card">
-        <h5>Recent FIRs</h5>
-
+        <h5>My FIR Requests</h5>
         <table class="table table-striped mt-3">
-    <thead>
-        <tr>
-            <th>Request ID</th>
-            <th>Crime</th>
-            <th>City</th>
-            <th>Status</th>
-            <th>Action</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for req in requests %}
-        <tr>
-            <td>{{ req.request_id }}</td>
-            <td>{{ req.crime_type }}</td>
-            <td>{{ req.city }}</td>
-            <td>
-                {% if req.status == "Pending" %}
-                    <span class="badge bg-warning">Pending</span>
-                {% elif req.status == "Approved" %}
-                    <span class="badge bg-success">Approved</span>
-                {% else %}
-                    <span class="badge bg-danger">Rejected</span>
-                {% endif %}
-            </td>
-            <td>
-                {% if req.status == "Approved" %}
-                    <a href="/download_fir/{{ req.request_id }}" class="btn btn-sm btn-success">Download</a>
-                {% else %}
-                    -
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+            <thead>
+                <tr>
+                    <th>Request ID</th>
+                    <th>Crime Type</th>
+                    <th>City</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requests %}
+                <tr>
+                    <td>{{ req.request_id }}</td>
+                    <td>{{ req.crime_type }}</td>
+                    <td>{{ req.city }}</td>
+                    <td>
+                        {% if req.status == "Pending" %}
+                            <span class="badge bg-warning">Pending</span>
+                        {% elif req.status == "Approved" %}
+                            <span class="badge bg-success">Approved</span>
+                        {% else %}
+                            <span class="badge bg-danger">Rejected</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if req.status == "Approved" %}
+                            <a href="/download_fir/{{ req.request_id }}" class="btn btn-sm btn-success">Download</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- NEIGHBORHOOD COMPLAINTS QUICK VIEW -->
+    <div class="stat-card">
+        <h5>Recent Neighborhood Complaints</h5>
+        <ul>
+            {% for comp in recent_complaints %}
+                <li>{{ comp.city }}: {{ comp.complaint_text[:50] }}... <span class="badge bg-secondary">{{ comp.status }}</span></li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- MISSING PERSONS QUICK VIEW -->
+    <div class="stat-card">
+        <h5>Recent Missing Persons</h5>
+        <ul>
+            {% for person in recent_missing %}
+                <li>{{ person.name }}, {{ person.city }} - Status: <span class="badge bg-warning">{{ person.status }}</span></li>
+            {% endfor %}
+        </ul>
     </div>
 
 </div>
@@ -164,23 +175,21 @@
 const caseChart = new Chart(document.getElementById('caseChart'), {
     type: 'pie',
     data: {
-        labels: ['Open', 'Closed', 'Under Investigation'],
+        labels: ['Pending', 'Approved', 'Rejected'],
         datasets: [{
             data: [
-                {{ open_cases }},
-                {{ closed_cases }},
-                {{ investigation_cases }}
+                {{ pending_requests }},
+                {{ approved_requests }},
+                {{ rejected_requests }}
             ],
-            backgroundColor: ['#dc3545', '#28a745', '#ffc107']
+            backgroundColor: ['#ffc107', '#28a745', '#dc3545']
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: true,
         plugins: {
-            legend: {
-                position: 'bottom'
-            }
+            legend: { position: 'bottom' }
         }
     }
 });

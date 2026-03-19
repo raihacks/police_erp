@@ -435,12 +435,72 @@ def test_ui():
 @app.route('/download_fir/<int:fir_id>')
 def download_fir(fir_id):
     return f"Download FIR {fir_id}"  # later convert to PDF
-@app.route('/missing_persons')
+@app.route('/missing_persons', methods=['GET', 'POST'])
 def missing_persons():
-    return render_template('missing_persons.html')
-@app.route('/neighbourhood_complaints')
+    # Only logged-in citizens can access
+    if 'username' not in session or session.get('role') != 'citizen':
+        return redirect('/login')
+
+    cur = conn.cursor()
+
+    if request.method == 'POST':
+        name = request.form['name']
+        city = request.form['city']
+        status = request.form.get('status', 'Missing')
+        reported_by = session['username']
+
+        # Insert into database
+        cur.execute("""
+            INSERT INTO missing_persons (name, city, status, reported_by)
+            VALUES (%s, %s, %s, %s)
+        """, (name, city, status, reported_by))
+        conn.commit()
+        flash("Missing person report submitted successfully!", "success")
+        return redirect('/missing_persons')
+
+    # For GET: fetch recent 5 reports
+    cur.execute("""
+        SELECT name, city, status
+        FROM missing_persons
+        ORDER BY created_at DESC
+        LIMIT 5
+    """)
+    recent_missing = cur.fetchall()
+    cur.close()
+
+    return render_template('missing_persons.html', recent_missing=recent_missing)
+@app.route('/neighbourhood_complaints', methods=['GET', 'POST'])
 def neighbourhood_complaints():
-    return render_template('neighbourhood.html')
+    if 'username' not in session or session.get('role') != 'citizen':
+        return redirect('/login')
+
+    if request.method == 'POST':
+        citizen_name = request.form['citizen_name']
+        city = request.form['city']
+        complaint_text = request.form['complaint_text']
+
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO neighbourhood_complaints (citizen_name, city, complaint_text)
+            VALUES (%s, %s, %s)
+        """, (citizen_name, city, complaint_text))
+        conn.commit()
+        cur.close()
+        flash("Complaint submitted successfully!", "success")
+        return redirect('/neighbourhood_complaints')
+
+    # For GET: show recent complaints on the page/dashboard
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT citizen_name, city, complaint_text, status
+        FROM neighbourhood_complaints
+        ORDER BY created_at DESC
+        LIMIT 5
+    """)
+    recent_complaints = cur.fetchall()
+    cur.close()
+    
+    return render_template('neighbourhood_complaints.html', recent_complaints=recent_complaints)
 
 
 @app.route('/request_fir', methods=['GET', 'POST'])
