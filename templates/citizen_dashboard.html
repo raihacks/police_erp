@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Police Dashboard</title>
+    <title>Citizen Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- Bootstrap -->
@@ -10,97 +10,147 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <style>
+        body {
+            background: #f4f6f9;
+        }
+
+        .dashboard-header {
+            background: #212529;
+            color: white;
+            padding: 15px;
+            font-size: 22px;
+            text-align: center;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: scale(1.05);
+        }
+
+        .quick-actions a {
+            margin: 5px;
+        }
+    </style>
 </head>
+
 <body>
 
 <!-- HEADER -->
 <div class="dashboard-header">
-    Police ERP Dashboard
+    🚔 Citizen Police Dashboard
 </div>
 
 <div class="container mt-4">
+
+    <!-- SAFETY MESSAGE -->
+    <div class="alert alert-info">
+        🔒 Your data is secure and visible only to authorized police officers.
+    </div>
+
+    <!-- WELCOME -->
+    <h5 class="mb-3">Welcome, {{ session.username }}</h5>
+
+    <!-- QUICK ACTIONS -->
+    <div class="stat-card mb-4 quick-actions">
+        <h5>Quick Actions</h5>
+        <a href="/add_fir" class="btn btn-primary btn-sm">File FIR</a>
+        <a href="/view_fir" class="btn btn-secondary btn-sm">View FIRs</a>
+        <a href="/neighbourhood_complaints" class="btn btn-dark btn-sm">Neighbourhood Complaint</a>
+        <a href="/missing_persons" class="btn btn-warning btn-sm">Missing Persons</a>
+        <a href="/emergency_call" class="btn btn-danger btn-sm">🚨 Emergency</a>
+    </div>
 
     <!-- STATS -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="stat-card text-center">
-<h2>{{ total_firs }}</h2>
-
+                <h2>{{ total_firs }}</h2>
                 <p>Total FIRs</p>
             </div>
         </div>
+
         <div class="col-md-3">
             <div class="stat-card text-center">
-<h2>{{ open_cases }}</h2>
-
+                <h2>{{ open_cases }}</h2>
                 <p>Open Cases</p>
             </div>
         </div>
+
         <div class="col-md-3">
             <div class="stat-card text-center">
-<h2>{{ total_officers }}</h2>
-
-                <p>Officers</p>
+                <h2>{{ closed_cases }}</h2>
+                <p>Closed Cases</p>
             </div>
         </div>
+
         <div class="col-md-3">
             <div class="stat-card text-center">
-<h2>{{ total_citizens }}</h2>
-
-                <p>Registered Citizens</p>
+                <h2>{{ total_citizens }}</h2>
+                <p>Citizens</p>
             </div>
         </div>
     </div>
 
-    <!-- CHARTS -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="stat-card">
-                <h5>Cases by Status</h5>
-                <canvas id="caseChart"></canvas>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="stat-card">
-                <h5>Monthly FIRs</h5>
-                <canvas id="monthlyChart"></canvas>
-            </div>
-        </div>
+    <!-- CHART -->
+    <div class="stat-card mb-4">
+        <h5>Case Status Overview</h5>
+        <canvas id="caseChart"></canvas>
     </div>
 
     <!-- RECENT FIR TABLE -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="stat-card">
-                <h5>Recent FIRs</h5>
-                <table class="table table-striped mt-3">
-                    <thead>
-                        <tr>
-                            <th>FIR ID</th>
-                            <th>Citizen</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-    {% for fir in recent_firs %}
-    <tr>
-        <td>{{ fir.fir_id }}</td>
-        <td>{{ fir.complaint_type }}</td>
-        <td>{{ fir.status }}</td>
-    </tr>
-    {% endfor %}
-</tbody>
+    <div class="stat-card">
+        <h5>Recent FIRs</h5>
 
-                </table>
-            </div>
-        </div>
+        <table class="table table-striped mt-3">
+            <thead>
+                <tr>
+                    <th>FIR ID</th>
+                    <th>Citizen</th>
+                    <th>Crime</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for fir in recent_firs %}
+                <tr>
+                    <td>{{ fir.fir_id }}</td>
+                    <td>{{ fir.citizen_name }}</td>
+                    <td>{{ fir.crime_type }}</td>
+
+                    <td>
+                        {% if fir.status == "Open" %}
+                            <span class="badge bg-danger">Open</span>
+                        {% elif fir.status == "Closed" %}
+                            <span class="badge bg-success">Closed</span>
+                        {% else %}
+                            <span class="badge bg-warning">Under Investigation</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <a href="/view_fir/{{ fir.fir_id }}" class="btn btn-sm btn-primary">View</a>
+                        <a href="/download_fir/{{ fir.fir_id }}" class="btn btn-sm btn-success">Download</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
 </div>
 
+<!-- CHART SCRIPT -->
 <script>
 const caseChart = new Chart(document.getElementById('caseChart'), {
     type: 'pie',

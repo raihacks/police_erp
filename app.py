@@ -432,7 +432,15 @@ def citizen_logout():
 @app.route('/test_ui')
 def test_ui():
     return render_template('test_ui.html')
-
+@app.route('/download_fir/<int:fir_id>')
+def download_fir(fir_id):
+    return f"Download FIR {fir_id}"  # later convert to PDF
+@app.route('/missing_persons')
+def missing_persons():
+    return render_template('missing_persons.html')
+@app.route('/neighbourhood_complaints')
+def neighbourhood_complaints():
+    return render_template('neighbourhood.html')
 # ---------- RUN ----------
 if __name__ == '__main__':
     app.run(debug=True)
