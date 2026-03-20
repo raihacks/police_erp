@@ -621,11 +621,42 @@ def approve_request(request_id):
     if session.get('role') != 'police':
         return "Unauthorized", 403
 
-    decision = request.form['decision']  # Approved / Rejected
-    cur.execute("UPDATE fir_requests SET status=%s WHERE request_id=%s", (decision, request_id))
+    conn = get_db()
+    cur = conn.cursor()
+
+    decision = request.form['decision']
+
+    cur.execute(
+        "UPDATE fir_requests SET status=%s WHERE request_id=%s",
+        (decision, request_id)
+    )
     conn.commit()
+
+    cur.close()
+    conn.close()
+
     flash(f"Request {decision.lower()}", "success")
     return redirect('/pending_requests')
+@app.route('/pending_requests')
+def pending_requests():
+    if session.get('role') != 'police':
+        return "Unauthorized", 403
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT * FROM fir_requests
+        WHERE status='Pending'
+        ORDER BY created_at DESC
+    """)
+
+    requests = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template('pending_requests.html', requests=requests)
 # ---------- RUN ----------
 if __name__ == '__main__':
     app.run(debug=True)
