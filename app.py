@@ -115,8 +115,8 @@ def police_dashboard():
 # ---------- ADD FIR ----------
 @app.route('/add_fir', methods=['GET', 'POST'])
 def add_fir():
-    if session.get('role') != 'officer':
-        return "Unauthorized", 403
+    if 'username' not in session:
+        return redirect('/')
 
     conn = get_db()
     cur = conn.cursor()
