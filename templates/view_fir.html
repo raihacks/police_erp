@@ -109,11 +109,9 @@
 
                         <!-- 👇 THIS IS WHERE BUTTONS GO -->
                         <td>
-                            <a href="/edit_fir/{{ fir[0] }}" class="btn btn-warning btn-sm">
-                                Edit
-                            </a>
+                            <a href="/edit_fir/{{ fir.fir_id }}">Edit</a>
 
-                            <a href="/delete_fir/{{ fir[0] }}"
+                            <a href="/delete_fir/{{ fir.fir_id }}"
                                class="btn btn-danger btn-sm"
                                onclick="return confirm('Are you sure you want to delete this FIR?');">
                                 Delete
