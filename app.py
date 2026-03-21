@@ -559,7 +559,7 @@ def request_fir():
     try:
         if request.method == 'POST':
             # safely get form values
-            name = request.form.get('citizen_name')
+            name = session['username']
             phone = request.form.get('citizen_phone')
             address = request.form.get('citizen_address')
             crime = request.form.get('crime_type')
@@ -575,7 +575,7 @@ def request_fir():
                 INSERT INTO fir_requests
                 (citizen_name, phone, address, crime_type, city)
                 VALUES (%s,%s,%s,%s,%s)
-            """, (name, phone, address, crime, city))
+            """, (session['username'], phone, address, crime, city))
             conn.commit()
             flash("FIR request submitted. Police will review it.", "success")
             return redirect('/my_firs')  # redirect to track submitted FIRs
