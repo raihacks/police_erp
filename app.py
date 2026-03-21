@@ -622,8 +622,8 @@ def my_firs():
     return render_template('my_firs.html', requests=requests)
 @app.route('/approve_request/<int:request_id>', methods=['POST'])
 def approve_request(request_id):
-    if session.get('role') != 'police':
-        return "Unauthorized", 403
+    if 'username' not in session:
+        return redirect('/')
 
     conn = get_db()
     cur = conn.cursor()
@@ -643,8 +643,8 @@ def approve_request(request_id):
     return redirect('/pending_requests')
 @app.route('/pending_requests')
 def pending_requests():
-    if session.get('role') != 'police':
-        return "Unauthorized", 403
+    if 'username' not in session:
+        return redirect('/')
 
     conn = get_db()
     cur = conn.cursor()
