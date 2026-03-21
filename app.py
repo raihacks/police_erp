@@ -394,6 +394,9 @@ def officer_profile():
 # ---------- EMERGENCY ----------
 @app.route('/add_emergency_call', methods=['GET','POST'])
 def add_emergency_call():
+    if 'username' not in session or session.get('role') != 'citizen':
+        return redirect('/citizen_login')
+
     if request.method == 'POST':
         conn = get_db()
         cur = conn.cursor()
@@ -401,11 +404,13 @@ def add_emergency_call():
         cur.execute("""
             INSERT INTO emergency_calls (citizen_id, location, description)
             VALUES (%s,%s,%s)
-        """,(request.form['citizen_id'], request.form['location'], request.form['description']))
+        """,(session['citizen_id'], request.form['location'], request.form['description']))
 
         conn.commit()
         cur.close(); conn.close()
-        return redirect('/view_emergency_calls')
+
+        flash("Emergency reported successfully!", "success")
+        return redirect('/citizen_dashboard')
 
     return render_template("add_emergency_call.html")
 
