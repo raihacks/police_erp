@@ -256,11 +256,40 @@ def station_report():
     conn = get_db()
     cur = conn.cursor()
 
-    cur.callproc('get_station_case_count')
-    data = cur.fetchall()
+    try:
+        # Station-wise total FIRs
+        cur.execute("""
+            SELECT ps.station_name, COUNT(f.fir_id) AS total_cases
+            FROM fir f
+            JOIN police_station ps ON f.station_id = ps.station_id
+            GROUP BY ps.station_name
+        """)
+        station_data = cur.fetchall()
 
-    cur.close(); conn.close()
-    return render_template('report.html', data=data)
+        # Open cases per station
+        cur.execute("""
+            SELECT ps.station_name, COUNT(f.fir_id) AS open_cases
+            FROM fir f
+            JOIN police_station ps ON f.station_id = ps.station_id
+            WHERE f.status = 'open'
+            GROUP BY ps.station_name
+        """)
+        open_data = cur.fetchall()
+
+    except Exception as e:
+        flash(f"Error: {str(e)}", "danger")
+        station_data = []
+        open_data = []
+
+    finally:
+        cur.close()
+        conn.close()
+
+    return render_template(
+        'station_report.html',
+        station_data=station_data,
+        open_data=open_data
+    )
 
 # ---------- CITIZEN REGISTER ----------
 @app.route('/citizen_register', methods=['GET','POST'])
