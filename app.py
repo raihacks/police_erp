@@ -707,8 +707,8 @@ def pending_requests():
     return render_template('pending_requests.html', requests=requests)
 
 
-@app.route('/add_court_date', methods=['GET', 'POST'])
-def add_court_date():
+@app.route('/court_management', methods=['GET', 'POST'])
+def court_management():
     if 'username' not in session:
         return redirect('/login')
 
@@ -716,6 +716,7 @@ def add_court_date():
     cur = conn.cursor()
 
     try:
+        # ADD new court date
         if request.method == 'POST':
             fir_id = request.form['fir_id']
             court_date = request.form['court_date']
@@ -728,18 +729,58 @@ def add_court_date():
             """, (fir_id, court_date, court_location, status))
 
             conn.commit()
-            flash("Court date added successfully!", "success")
-            return redirect('/police_dashboard')
+            flash("Court date added!", "success")
+
+        # FETCH all court dates
+        cur.execute("SELECT * FROM court_dates ORDER BY court_date DESC")
+        court_dates = cur.fetchall()
 
     except Exception as e:
         conn.rollback()
         flash(f"Error: {str(e)}", "danger")
+        court_dates = []
 
     finally:
         cur.close()
         conn.close()
 
-    return render_template('add_court_date.html')
+    return render_template('court_management.html', court_dates=court_dates)
+@app.route('/delete_court_date/<int:court_id>')
+def delete_court_date(court_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM court_dates WHERE court_id=%s", (court_id,))
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+    flash("Deleted successfully!", "success")
+    return redirect('/court_management')
+@app.route('/update_court_date/<int:court_id>', methods=['POST'])
+def update_court_date(court_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE court_dates
+        SET fir_id=%s, court_date=%s, court_location=%s, status=%s
+        WHERE court_id=%s
+    """, (
+        request.form['fir_id'],
+        request.form['court_date'],
+        request.form['court_location'],
+        request.form['status'],
+        court_id
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    flash("Updated successfully!", "success")
+    return redirect('/court_management')
 # ---------- RUN ----------
 if __name__ == '__main__':
     app.run(debug=True)
