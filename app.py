@@ -100,6 +100,13 @@ def police_dashboard():
 
     cur.execute("SELECT COUNT(*) AS total FROM officer_attendance WHERE status='Sick Leave'")
     sick_leave = cur.fetchone()['total']
+    cur.execute("""
+    SELECT fir_id, court_date, court_location, status
+    FROM court_dates
+    ORDER BY court_date ASC
+    LIMIT 5
+""")
+    court_dates = cur.fetchall()
 
     cur.close(); conn.close()
 
@@ -109,7 +116,10 @@ def police_dashboard():
         total_firs=total_firs,
         open_cases=open_cases,
         total_officers=total_officers,
-        total_citizens=total_citizens
+        total_citizens=total_citizens,
+        court_dates=court_dates,
+        present_officers=present_officers,
+        sick_leave=sick_leave
     )
 
 # ---------- ADD FIR ----------
@@ -695,6 +705,41 @@ def pending_requests():
     conn.close()
 
     return render_template('pending_requests.html', requests=requests)
+
+
+@app.route('/add_court_date', methods=['GET', 'POST'])
+def add_court_date():
+    if 'username' not in session:
+        return redirect('/login')
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        if request.method == 'POST':
+            fir_id = request.form['fir_id']
+            court_date = request.form['court_date']
+            court_location = request.form['court_location']
+            status = request.form['status']
+
+            cur.execute("""
+                INSERT INTO court_dates (fir_id, court_date, court_location, status)
+                VALUES (%s, %s, %s, %s)
+            """, (fir_id, court_date, court_location, status))
+
+            conn.commit()
+            flash("Court date added successfully!", "success")
+            return redirect('/police_dashboard')
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error: {str(e)}", "danger")
+
+    finally:
+        cur.close()
+        conn.close()
+
+    return render_template('add_court_date.html')
 # ---------- RUN ----------
 if __name__ == '__main__':
     app.run(debug=True)

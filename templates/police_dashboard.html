@@ -254,11 +254,17 @@
             <div class="card shadow">
                 <div class="card-body">
                     <h5>Upcoming Court Dates</h5>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item">FIR 101 – 20 Feb 2026</li>
-                        <li class="list-group-item">FIR 112 – 25 Feb 2026</li>
-                        <li class="list-group-item">FIR 130 – 28 Feb 2026</li>
-                    </ul>
+<ul class="list-group list-group-flush">
+    {% for c in court_dates %}
+        <li class="list-group-item">
+            <b>FIR {{ c.fir_id }}</b> – {{ c.court_date }} <br>
+            📍 {{ c.court_location }} <br>
+            <span class="badge bg-info">{{ c.status }}</span>
+        </li>
+    {% else %}
+        <li class="list-group-item">No court dates available</li>
+    {% endfor %}
+</ul>
                 </div>
             </div>
         </div>
