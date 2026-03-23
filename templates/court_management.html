@@ -2,39 +2,101 @@
 <html>
 <head>
     <title>Court Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
     <style>
-        body { background: #f4f6f9; }
+        body {
+            overflow-x: hidden;
+            background-color: #f4f6f9;
+        }
 
+        /* SIDEBAR */
         .sidebar {
             height: 100vh;
-            width: 240px;
-            position: fixed;
             background: #0d1b2a;
+            position: fixed;
+            width: 240px;
             padding-top: 20px;
+            transition: 0.3s;
+        }
+
+        .sidebar.collapsed {
+            width: 70px;
+        }
+
+        .sidebar h4 {
+            color: white;
+            font-weight: 600;
+            letter-spacing: 1px;
         }
 
         .sidebar a {
             display: flex;
+            align-items: center;
             padding: 12px 20px;
+            margin: 6px 10px;
             color: #cbd5e1;
             text-decoration: none;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: 0.2s;
+        }
+
+        .sidebar a i {
+            font-size: 18px;
+            width: 25px;
+        }
+
+        .sidebar a span {
+            margin-left: 10px;
         }
 
         .sidebar a:hover {
             background: #1b263b;
-            color: white;
+            color: #fff;
+            transform: translateX(4px);
         }
 
+        .sidebar a.active {
+            background: #1b263b;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .sidebar.collapsed a span {
+            display: none;
+        }
+
+        /* CONTENT */
         .content {
             margin-left: 240px;
             padding: 20px;
+            transition: 0.3s;
         }
 
-        .card { border-radius: 12px; }
+        .content.collapsed {
+            margin-left: 70px;
+        }
+
+        /* CARDS */
+        .card-hover:hover {
+            transform: translateY(-3px);
+            transition: 0.2s;
+        }
+
+        /* PROFILE */
+        .profile-img {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
     </style>
 </head>
 
@@ -60,9 +122,9 @@
         <span>View FIRs</span>
     </a>
 
-    <a href="/add_court_date">
+    <a href="/court_management">
         <i class="bi bi-calendar-event"></i>
-        <span>Court Dates</span>
+        <span>Court management</span>
     </a>
 <a href="/emergency_logs">
 <i class="bi bi-clock-history"></i>
@@ -88,20 +150,29 @@
     </a>
 </div>
 
-
-<!-- CONTENT -->
+<!-- MAIN CONTENT -->
 <div class="content">
 
-    <h3 class="mb-4">Court Management</h3>
+    <!-- TOP NAV -->
+    <nav class="navbar navbar-light bg-white shadow-sm rounded mb-4">
+        <div class="container-fluid">
+            <button class="btn btn-outline-secondary" onclick="toggleSidebar()">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <span class="navbar-brand ms-3">Court Management</span>
+        </div>
+    </nav>
 
     <!-- ADD FORM -->
     <div class="card shadow mb-4">
         <div class="card-body">
-            <h5>Add Court Date</h5>
+            <h5 class="mb-3">Add Court Date</h5>
 
             <form method="POST">
-                <div class="row">
-                    <div class="col-md-3">
+                <div class="row g-2">
+
+                    <div class="col-md-2">
                         <input type="number" name="fir_id" class="form-control" placeholder="FIR ID" required>
                     </div>
 
@@ -109,23 +180,24 @@
                         <input type="date" name="court_date" class="form-control" required>
                     </div>
 
-                    <div class="col-md-3">
-                        <input type="text" name="court_location" class="form-control" placeholder="Location" required>
+                    <div class="col-md-4">
+                        <input type="text" name="court_location" class="form-control" placeholder="Court Location" required>
                     </div>
 
                     <div class="col-md-2">
-                        <select name="status" class="form-control">
+                        <select name="status" class="form-select">
                             <option>Scheduled</option>
                             <option>Completed</option>
                             <option>Postponed</option>
                         </select>
                     </div>
 
-                    <div class="col-md-1">
-                        <button class="btn btn-primary w-100">
+                    <div class="col-md-1 d-grid">
+                        <button class="btn btn-primary">
                             <i class="bi bi-plus"></i>
                         </button>
                     </div>
+
                 </div>
             </form>
 
@@ -136,70 +208,80 @@
     <div class="card shadow">
         <div class="card-body">
 
-            <h5>All Court Dates</h5>
+            <h5 class="mb-3">All Court Dates</h5>
 
-            <table class="table table-bordered table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>FIR</th>
-                        <th>Date</th>
-                        <th>Location</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
 
-                <tbody>
-                    {% for c in court_dates %}
-                    <tr>
+                    <thead class="table-dark">
+                        <tr>
+                            <th>FIR</th>
+                            <th>Date</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
 
-                        <!-- INLINE EDIT FORM -->
-                        <form method="POST" action="/update_court_date/{{ c.court_id }}">
+                    <tbody>
+                        {% for c in court_dates %}
+                        <tr>
 
-                        <td>
-                            <input type="number" name="fir_id" value="{{ c.fir_id }}" class="form-control">
-                        </td>
+                            <form method="POST" action="/update_court_date/{{ c.court_id }}">
 
-                        <td>
-                            <input type="date" name="court_date" value="{{ c.court_date }}" class="form-control">
-                        </td>
+                            <td>
+                                <input type="number" name="fir_id" value="{{ c.fir_id }}" class="form-control form-control-sm">
+                            </td>
 
-                        <td>
-                            <input type="text" name="court_location" value="{{ c.court_location }}" class="form-control">
-                        </td>
+                            <td>
+                                <input type="date" name="court_date" value="{{ c.court_date }}" class="form-control form-control-sm">
+                            </td>
 
-                        <td>
-                            <select name="status" class="form-control">
-                                <option {% if c.status=='Scheduled' %}selected{% endif %}>Scheduled</option>
-                                <option {% if c.status=='Completed' %}selected{% endif %}>Completed</option>
-                                <option {% if c.status=='Postponed' %}selected{% endif %}>Postponed</option>
-                            </select>
-                        </td>
+                            <td>
+                                <input type="text" name="court_location" value="{{ c.court_location }}" class="form-control form-control-sm">
+                            </td>
 
-                        <td>
-                            <button class="btn btn-success btn-sm">
-                                <i class="bi bi-check"></i>
-                            </button>
+                            <td>
+                                <select name="status" class="form-select form-select-sm">
+                                    <option {% if c.status=='Scheduled' %}selected{% endif %}>Scheduled</option>
+                                    <option {% if c.status=='Completed' %}selected{% endif %}>Completed</option>
+                                    <option {% if c.status=='Postponed' %}selected{% endif %}>Postponed</option>
+                                </select>
+                            </td>
 
-                            <a href="/delete_court_date/{{ c.court_id }}"
-                               class="btn btn-danger btn-sm"
-                               onclick="return confirm('Delete?')">
-                                <i class="bi bi-trash"></i>
-                            </a>
-                        </td>
+                            <td>
+                                <button class="btn btn-success btn-sm">
+                                    <i class="bi bi-check"></i>
+                                </button>
 
-                        </form>
+                                <a href="/delete_court_date/{{ c.court_id }}"
+                                   class="btn btn-danger btn-sm"
+                                   onclick="return confirm('Delete this?')">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
 
-                    </tr>
-                    {% endfor %}
-                </tbody>
+                            </form>
 
-            </table>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+            </div>
 
         </div>
     </div>
 
 </div>
+
+<!-- SCRIPT -->
+<script>
+function toggleSidebar() {
+    document.querySelector('.sidebar').classList.toggle('collapsed');
+    document.querySelector('.content').classList.toggle('collapsed');
+}
+</script>
 
 </body>
 </html>
